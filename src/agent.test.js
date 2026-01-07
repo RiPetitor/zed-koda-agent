@@ -4,7 +4,7 @@
 
 // Import all modules at once
 import { ModeManager, MODES } from "./modes.js";
-import { ModelManager, FREE_MODELS, PREMIUM_MODELS } from "./models.js";
+import { ModelManager } from "./models.js";
 import { PlanCollector } from "./plan.js";
 import { PermissionHandler } from "./permissions.js";
 import { SlashCommandManager } from "./slash.js";
@@ -128,50 +128,36 @@ describe("Modes", () => {
 });
 
 describe("Models", () => {
-  test("FREE_MODELS contains KodaAgent", () => {
-    expect(FREE_MODELS).toContainEqual({
-      modelId: "KodaAgent",
-      name: "KodaAgent",
-      description: expect.any(String),
-    });
-  });
-
-  test("PREMIUM_MODELS contains Gemini models", () => {
-    const modelIds = PREMIUM_MODELS.map((m) => m.modelId);
-    expect(modelIds).toContain("gemini-2.5-pro");
-    expect(modelIds).toContain("gemini-2.0-flash");
-  });
-
-  test("ModelManager shows all models (KODA handles auth)", () => {
+  test("ModelManager has default KodaAgent model", () => {
     const manager = new ModelManager("", { debug: false });
-    // Now we show all models - KODA CLI handles auth internally
-    expect(manager.isAuthenticated).toBe(false);
-    expect(manager.loadAvailableModels().length).toBe(
-      FREE_MODELS.length + PREMIUM_MODELS.length,
+    expect(manager.availableModels).toContainEqual(
+      expect.objectContaining({
+        modelId: "KodaAgent",
+        name: "KodaAgent",
+      }),
     );
-
-    // Verify premium models are marked as requiring auth
-    const models = manager.loadAvailableModels();
-    const premiumModels = models.filter((m) => m.modelId !== "KodaAgent");
-    expect(premiumModels.length).toBe(PREMIUM_MODELS.length);
   });
 
-  test("ModelManager switches to all models when authenticated", () => {
+  test("ModelManager starts not authenticated", () => {
+    const manager = new ModelManager("", { debug: false });
+    expect(manager.isAuthenticated).toBe(false);
+  });
+
+  test("ModelManager setAuthenticated updates state", () => {
     const manager = new ModelManager("", { debug: false });
     manager.setAuthenticated(true);
-    expect(manager.loadAvailableModels().length).toBe(
-      FREE_MODELS.length + PREMIUM_MODELS.length,
-    );
+    expect(manager.isAuthenticated).toBe(true);
+    manager.setAuthenticated(false);
+    expect(manager.isAuthenticated).toBe(false);
   });
 
   test("ModelManager stores per-session models", () => {
     const manager = new ModelManager("", { debug: false });
-    manager.setAuthenticated(true); // Enable premium models
-    manager.setModel("session1", "gemini-2.0-flash");
-    manager.setModel("session2", "gemini-1.5-pro");
+    manager.setModel("session1", "KodaAgent");
+    manager.setModel("session2", "KodaAgent");
 
-    expect(manager.getModel("session1")).toBe("gemini-2.0-flash");
-    expect(manager.getModel("session2")).toBe("gemini-1.5-pro");
+    expect(manager.getModel("session1")).toBe("KodaAgent");
+    expect(manager.getModel("session2")).toBe("KodaAgent");
   });
 
   test("setModel throws for unknown models", () => {
@@ -480,15 +466,27 @@ describe("SlashCommandManager", () => {
   });
 
   test("processCommand /models returns model info", async () => {
-    const manager = new SlashCommandManager({ debug: false });
+    const mockModels = [
+      { modelId: "KodaAgent", name: "KodaAgent", requiresAuth: false },
+      {
+        modelId: "gemini-2.5-flash",
+        name: "gemini-2.5-flash",
+        requiresAuth: true,
+      },
+    ];
+    const manager = new SlashCommandManager({
+      debug: false,
+      getAvailableModelsList: () => mockModels,
+    });
     const result = await manager.processCommand(
       { name: "models", args: [] },
       [],
-      {},
+      { currentModel: "KodaAgent" },
     );
 
     expect(result.handled).toBe(true);
-    expect(result.response).toContain("/model");
+    expect(result.response).toContain("KodaAgent");
+    expect(result.response).toContain("gemini-2.5-flash");
   });
 
   test("processCommand /cancel returns cancel message", async () => {

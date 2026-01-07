@@ -1,6 +1,6 @@
 id = "koda-agent"
 name = "KODA Agent"
-version = "0.2.0"
+version = "0.3.0"
 schema_version = 1
 authors = ["RiPetitor"]
 description = "Run KODA CLI as an AI coding agent in Zed with full permission control and planning modes."

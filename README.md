@@ -1,32 +1,41 @@
 # KODA Agent for Zed
 
-AI coding agent that runs KODA CLI through the Agent Client Protocol (ACP) with full permission control and planning modes.
+[English](#english) | [Русский](#русский)
 
-## Features
+---
 
-- **Full ACP Integration**: Runs KODA CLI in ACP mode for seamless Zed integration
-- **Permission Control**: Ask before file edits, command execution, and dangerous operations
-- **Session Modes**: Switch between Default, Accept Edits, Plan Mode, Don't Ask, and Bypass
-- **Plan Mode**: Collect planned actions without execution for review
-- **MCP Support**: Syncs Zed MCP server definitions to KODA
+## English
 
-## Session Modes
+AI coding agent that runs KODA CLI through the Agent Client Protocol (ACP) with GitHub authentication, dynamic model selection, and slash commands.
 
-| Mode | Description |
-|------|-------------|
-| **Default** | Ask permission for all write operations |
-| **Accept Edits** | Auto-approve file edits, ask for commands |
-| **Plan Mode** | Read-only planning, no execution |
-| **Don't Ask** | Auto-approve everything except dangerous commands |
-| **Bypass** | Skip all permission checks |
+### Features
 
-## Requirements
+- **Full ACP Integration** — Runs KODA CLI in ACP mode for seamless Zed integration
+- **GitHub Authentication** — Login via `/auth` command to unlock premium models
+- **Dynamic Model List** — Models fetched from KODA API based on auth status
+- **Slash Commands** — Built-in commands for auth, models, modes, and more
+- **Permission Control** — Ask before file edits and command execution
+- **Session Modes** — Default, Accept Edits, Plan Mode, Don't Ask, Bypass
+
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all available commands |
+| `/auth` | Login via GitHub to access premium models |
+| `/logout` | Logout from GitHub account |
+| `/models` | Show available models |
+| `/model <id>` | Switch to a specific model |
+| `/mode <mode>` | Change session mode |
+| `/status` | Show current session status |
+
+### Requirements
 
 - Zed Editor
-- KODA CLI installed and authenticated (`koda` on PATH)
+- KODA CLI installed (`koda` on PATH)
 - Node.js 18+
 
-## Quick Start (Local Development)
+### Quick Start
 
 1. Install dependencies:
 
@@ -34,123 +43,171 @@ AI coding agent that runs KODA CLI through the Agent Client Protocol (ACP) with 
 npm install
 ```
 
-2. Add agent configuration to Zed settings (`zed: open settings`):
+2. Add to Zed settings (`zed: open settings`):
 
 ```json
 {
+  "agent": {
+    "profiles": {
+      "koda-agent": {
+        "name": "KODA Agent",
+        "provider": {
+          "type": "agent_server",
+          "server": "KODA Agent"
+        }
+      }
+    }
+  },
   "agent_servers": {
     "KODA Agent": {
       "type": "custom",
       "command": "node",
-      "args": ["/absolute/path/to/koda_zed/agent_server.mjs"],
-      "env": {
-        "KODA_DEFAULT_MODE": "default",
-        "KODA_DEFAULT_MODEL": ""
-      }
+      "args": ["/path/to/koda_zed/agent_server.mjs"]
     }
   }
 }
 ```
 
-3. Open the Agent panel in Zed and select **KODA Agent**.
+3. Open Agent panel in Zed and select **KODA Agent**.
 
-## Configuration
+### Authentication
+
+**Free model:** KodaAgent — available without login
+
+**Premium models:** Use `/auth` to login via GitHub:
+1. Type `/auth` in chat
+2. Enter the displayed code in browser
+3. Premium models become available
+
+Use `/models` to see available models.
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `KODA_CLI_PATH` | Path to koda binary | `koda` |
-| `KODA_CLI_ARGS` | Extra arguments (JSON array or space-separated) | |
-| `KODA_DEFAULT_MODE` | Default session mode | `default` |
-| `KODA_DEFAULT_MODEL` | Default model to use | |
 | `KODA_DEBUG` | Enable debug output | `false` |
+| `KODA_DEFAULT_MODE` | Default session mode | `default` |
+| `KODA_DEFAULT_MODEL` | Default model | `KodaAgent` |
 
-### CLI Options
+---
 
+## Русский
+
+AI агент для программирования, запускающий KODA CLI через Agent Client Protocol (ACP) с GitHub авторизацией, динамическим выбором моделей и slash-командами.
+
+### Возможности
+
+- **Полная интеграция ACP** — Запуск KODA CLI в режиме ACP для работы с Zed
+- **GitHub авторизация** — Вход через `/auth` для доступа к премиум моделям
+- **Динамический список моделей** — Модели загружаются из KODA API
+- **Slash-команды** — Встроенные команды для авторизации, моделей, режимов
+- **Контроль разрешений** — Запрос перед редактированием файлов
+- **Режимы сессии** — Default, Accept Edits, Plan Mode, Don't Ask, Bypass
+
+### Slash-команды
+
+| Команда | Описание |
+|---------|----------|
+| `/help` | Показать все доступные команды |
+| `/auth` | Войти через GitHub для премиум моделей |
+| `/logout` | Выйти из аккаунта |
+| `/models` | Показать доступные модели |
+| `/model <id>` | Переключить модель |
+| `/mode <mode>` | Изменить режим сессии |
+| `/status` | Показать статус сессии |
+
+### Требования
+
+- Zed Editor
+- KODA CLI (`koda` в PATH)
+- Node.js 18+
+
+### Быстрый старт
+
+1. Установить зависимости:
+
+```bash
+npm install
 ```
-node agent_server.mjs [options]
 
-Options:
-  --koda-path <path>      Path to the koda CLI
-  --koda-args <args>      Extra args as JSON array or space-separated string
-  --default-mode <mode>   Default session mode
-  --default-model <model> Default model to use
-  --debug                 Enable debug output
-  --help                  Show help
+2. Добавить в настройки Zed (`zed: open settings`):
+
+```json
+{
+  "agent": {
+    "profiles": {
+      "koda-agent": {
+        "name": "KODA Agent",
+        "provider": {
+          "type": "agent_server",
+          "server": "KODA Agent"
+        }
+      }
+    }
+  },
+  "agent_servers": {
+    "KODA Agent": {
+      "type": "custom",
+      "command": "node",
+      "args": ["/path/to/koda_zed/agent_server.mjs"]
+    }
+  }
+}
 ```
 
-## Architecture
+3. Открыть панель Agent в Zed и выбрать **KODA Agent**.
+
+### Авторизация
+
+**Бесплатная модель:** KodaAgent — доступна без входа
+
+**Премиум модели:** Используйте `/auth` для входа через GitHub:
+1. Введите `/auth` в чате
+2. Введите отображённый код в браузере
+3. Премиум модели станут доступны
+
+Используйте `/models` для просмотра доступных моделей.
+
+### Переменные окружения
+
+| Переменная | Описание | По умолчанию |
+|------------|----------|--------------|
+| `KODA_DEBUG` | Включить отладку | `false` |
+| `KODA_DEFAULT_MODE` | Режим по умолчанию | `default` |
+| `KODA_DEFAULT_MODEL` | Модель по умолчанию | `KodaAgent` |
+
+---
+
+## Architecture / Архитектура
 
 ```
 ┌─────────┐      ACP       ┌──────────────┐      ACP       ┌──────────┐
 │   Zed   │ ◄────────────► │ agent_server │ ◄────────────► │ KODA CLI │
-│ (Client)│                │ (Middleware) │                │ (Agent)  │
 └─────────┘                └──────────────┘                └──────────┘
-                                  │
-                                  ▼
-                    ┌─────────────────────────┐
-                    │ • Permission Handler    │
-                    │ • Mode Manager          │
-                    │ • Plan Collector        │
-                    │ • Tool Call Interceptor │
-                    └─────────────────────────┘
 ```
 
-The agent server acts as a middleware between Zed and KODA CLI:
+## Project Structure / Структура проекта
 
-1. Receives ACP requests from Zed
-2. Forwards them to KODA CLI (running with `--experimental-acp`)
-3. Intercepts tool calls for permission handling
-4. Manages session modes and plan collection
-
-## Permission Flow
-
-When a tool call requires permission:
-
-1. Tool call is shown in Zed UI as "pending"
-2. Permission dialog appears with options:
-   - **Allow** - Approve this operation once
-   - **Allow Always** - Always approve this type of operation
-   - **Reject** - Deny the operation
-3. Based on response, tool is executed or blocked
-
-## Packaging for Distribution
-
-Build archives for each platform:
-
-```bash
-npm run package-agent -- --target linux-x86_64
-npm run package-agent -- --target darwin-aarch64
-npm run package-agent -- --target darwin-x86_64
-npm run package-agent -- --target windows-x86_64
+```
+koda_zed/
+├── agent_server.mjs    # Entry point / Точка входа
+├── src/
+│   ├── agent.js        # Main agent class / Главный класс
+│   ├── bridge.js       # KODA ACP Bridge / Мост к KODA CLI
+│   ├── models.js       # Models & GitHub Auth / Модели и авторизация
+│   ├── modes.js        # Session modes / Режимы сессии
+│   ├── slash.js        # Slash commands / Slash-команды
+│   ├── permissions.js  # Permission handler / Обработка разрешений
+│   ├── interceptor.js  # Tool call interceptor / Перехватчик вызовов
+│   ├── plan.js         # Plan collector / Сборщик планов
+│   └── utils.js        # Utilities / Утилиты
+└── extension.toml
 ```
 
-Upload archives to a release and update `extension.toml` with archive URLs.
-
-## KODA CLI Tools
-
-KODA CLI provides these tools when running in ACP mode:
-
-| Tool | Type | Description |
-|------|------|-------------|
-| Read | read | Read file contents |
-| Write | edit | Write/create files |
-| Edit | edit | Edit files with search/replace |
-| Bash | execute | Execute shell commands |
-| Glob | read | Find files by pattern |
-| Grep | read | Search in files |
-| LS | read | List directory contents |
-| Tree | read | Show directory tree |
-
-## Author
+## Author / Автор
 
 [RiPetitor](https://github.com/RiPetitor)
 
-## Repository
-
-https://github.com/RiPetitor/zed-koda-agent
-
-## License
+## License / Лицензия
 
 MIT

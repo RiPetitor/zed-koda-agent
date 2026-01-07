@@ -28,6 +28,13 @@ const AGENT_NAME = "koda_agent";
 const AGENT_TITLE = "KODA Agent";
 const AGENT_VERSION = "0.2.0";
 
+// Debug logging
+function debug(...args) {
+  if (process.env.KODA_DEBUG === "1" || process.env.KODA_DEBUG === "true") {
+    console.error("[KODA Agent]", ...args);
+  }
+}
+
 // =============================================================================
 // Mode Manager
 // =============================================================================
@@ -938,26 +945,36 @@ class KodaAgent {
    */
   async handleKodaMessage(sessionId, message) {
     const session = this.sessions.get(sessionId);
-    if (!session) return;
+    if (!session) {
+      debug("No session found for", sessionId);
+      return;
+    }
+
+    debug("Received from KODA:", JSON.stringify(message).slice(0, 300));
 
     // Handle notifications (session/update)
     if (message.method === "session/update" && message.params) {
-      const result = await this.interceptor.processSessionUpdate(
-        sessionId,
-        message.params.update,
-      );
-
-      if (result.forward && result.update) {
-        await this.connection.sessionUpdate({
+      try {
+        const result = await this.interceptor.processSessionUpdate(
           sessionId,
-          update: result.update,
-        });
+          message.params.update,
+        );
+
+        if (result.forward && result.update) {
+          await this.connection.sessionUpdate({
+            sessionId,
+            update: result.update,
+          });
+        }
+      } catch (err) {
+        debug("Error processing session update:", err.message);
       }
       return;
     }
 
     // Handle requests from KODA CLI
     if (message.id !== undefined && message.method) {
+      debug("KODA request:", message.method, message.id);
       await this.handleKodaRequest(sessionId, session, message);
     }
   }
@@ -968,39 +985,75 @@ class KodaAgent {
   async handleKodaRequest(sessionId, session, message) {
     const { id, method, params } = message;
 
+    debug(
+      "handleKodaRequest:",
+      method,
+      "params:",
+      JSON.stringify(params).slice(0, 200),
+    );
+
     try {
       let result;
 
       switch (method) {
         case "fs/read_text_file":
+          debug("Reading file:", params.path);
           result = await this.connection.readTextFile({
             sessionId,
             path: params.path,
             line: params.line,
             limit: params.limit,
           });
+          debug("Read result:", result ? "success" : "empty");
           break;
 
         case "fs/write_text_file":
+          debug("Writing file:", params.path);
           result = await this.connection.writeTextFile({
             sessionId,
             path: params.path,
             content: params.content,
           });
+          debug("Write result:", result ? "success" : "empty");
           break;
 
         case "session/request_permission":
-          result = await this.connection.requestPermission({
+          debug("Requesting permission, params:", JSON.stringify(params));
+          // KODA CLI sends its own permission request format
+          // We need to adapt it for Zed's expected format
+          const permissionParams = {
             sessionId,
-            ...params,
-          });
+            options: params.options || [],
+          };
+
+          // If KODA provides toolCall, use it; otherwise create a minimal one
+          if (params.toolCall) {
+            permissionParams.toolCall = params.toolCall;
+          } else {
+            // Create a synthetic toolCall for Zed UI
+            permissionParams.toolCall = {
+              toolCallId: params.toolCallId || `permission_${Date.now()}`,
+              title: params.title || params.message || "Permission required",
+              kind: params.kind || "edit",
+              status: "pending",
+            };
+          }
+
+          debug(
+            "Sending permission request to Zed:",
+            JSON.stringify(permissionParams).slice(0, 300),
+          );
+          result = await this.connection.requestPermission(permissionParams);
+          debug("Permission result:", JSON.stringify(result));
           break;
 
         default:
+          debug("Unknown method, trying extMethod:", method);
           // Unknown method - try to forward via extension
           try {
             result = await this.connection.extMethod(method, params);
-          } catch {
+          } catch (extErr) {
+            debug("extMethod failed:", extErr.message);
             session.kodaBridge.sendResponse(id, null, {
               code: -32601,
               message: `Method not found: ${method}`,
@@ -1009,8 +1062,10 @@ class KodaAgent {
           }
       }
 
+      debug("Sending response for", method);
       session.kodaBridge.sendResponse(id, result);
     } catch (error) {
+      debug("Error in handleKodaRequest:", error.message, error.stack);
       session.kodaBridge.sendResponse(id, null, {
         code: -32000,
         message: error.message || "Unknown error",

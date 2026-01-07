@@ -1,0 +1,21 @@
+{
+  "name": "koda-agent",
+  "version": "0.2.0",
+  "description": "KODA Agent Server for Zed Editor - AI coding assistant with permission control and planning modes",
+  "type": "module",
+  "scripts": {
+    "agent": "node agent_server.mjs",
+    "package-agent": "node scripts/package-agent.mjs"
+  },
+  "keywords": [
+    "koda",
+    "zed",
+    "agent",
+    "acp",
+    "ai",
+    "coding-assistant"
+  ],
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.12.0"
+  }
+}

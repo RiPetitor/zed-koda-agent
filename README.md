@@ -211,3 +211,50 @@ koda_zed/
 ## License / Лицензия
 
 MIT
+
+## Troubleshooting Dev Extension
+
+### Slash Commands Not Working
+
+If slash commands don't appear after installing the dev extension, Zed may be using a cached version. To fix:
+
+```bash
+# Clean Zed caches
+npm run clean:zed
+
+# Or manually:
+bash scripts/clean-zed-cache.sh
+```
+
+Then:
+1. Restart Zed completely
+2. Reinstall the dev extension
+
+### Changes Not Taking Effect
+
+Zed caches compiled extensions in `~/.var/app/dev.zed.Zed/data/zed/external_agents/`. When developing:
+
+1. **After making changes:**
+   ```bash
+   npm run clean:zed
+   ```
+
+2. **In Zed:**
+   - `Ctrl+Shift+P` → "zed: reload extensions"
+   - Or restart Zed
+
+### Development Workflow
+
+```bash
+# 1. Make your changes
+vim src/agent/koda-agent.js
+
+# 2. Test locally
+npm test
+
+# 3. Clean caches
+npm run clean:zed
+
+# 4. Reload in Zed
+# Ctrl+Shift+P → "zed: reload extensions"
+```

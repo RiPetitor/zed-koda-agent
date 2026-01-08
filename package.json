@@ -25,7 +25,8 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\"",
-    "package": "node scripts/package-agent.mjs"
+    "package": "node scripts/package-agent.mjs",
+    "clean:zed": "bash scripts/clean-zed-cache.sh"
   },
   "keywords": [
     "koda",

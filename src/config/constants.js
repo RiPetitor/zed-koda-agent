@@ -69,6 +69,11 @@ export const MODES = [
     description: "Read-only planning, no execution",
   },
   {
+    id: "professional",
+    name: "Professional / Профессионал",
+    description: "Plan first, then execute step by step with approval",
+  },
+  {
     id: "yolo",
     name: "Don't Ask / Без вопросов",
     description: "Auto-approve everything except dangerous commands",

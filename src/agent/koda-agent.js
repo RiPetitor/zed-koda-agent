@@ -371,13 +371,8 @@ export class KodaAgent {
     session.model = modelId;
     session.restarting = false;
 
-    await this.connection.sessionUpdate({
-      sessionId,
-      update: {
-        sessionUpdate: SESSION_UPDATE.CURRENT_MODEL,
-        currentModelId: modelId,
-      },
-    });
+    // Note: current_model_update not supported by Zed, model change confirmed via agent message
+    this.debugLog(`Model changed to: ${modelId}`);
 
     return {};
   }

@@ -99,7 +99,6 @@ export const SESSION_UPDATE = {
   PLAN: "plan",
   AVAILABLE_COMMANDS: "available_commands_update",
   CURRENT_MODE: "current_mode_update",
-  CURRENT_MODEL: "current_model_update",
 };
 
 // =============================================================================

@@ -1,6 +1,6 @@
 {
   "name": "koda-agent",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "KODA Agent Server for Zed Editor - AI coding assistant with permission control and planning modes",
   "type": "module",
   "main": "src/index.js",

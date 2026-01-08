@@ -1,24 +1,31 @@
 {
   "name": "koda-agent",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "KODA Agent Server for Zed Editor - AI coding assistant with permission control and planning modes",
   "type": "module",
-  "main": "agent_server.mjs",
+  "main": "src/index.js",
   "exports": {
-    ".": "./agent_server.mjs",
-    "./src/agent": "./src/agent.js",
-    "./src/bridge": "./src/bridge.js",
-    "./src/modes": "./src/modes.js",
-    "./src/models": "./src/models.js",
-    "./src/permissions": "./src/permissions.js",
-    "./src/plan": "./src/plan.js",
-    "./src/interceptor": "./src/interceptor.js",
-    "./src/utils": "./src/utils.js"
+    ".": "./src/index.js",
+    "./agent": "./src/agent/index.js",
+    "./auth": "./src/auth/index.js",
+    "./bridge": "./src/bridge/index.js",
+    "./commands": "./src/commands/index.js",
+    "./config": "./src/config/constants.js",
+    "./models": "./src/models/index.js",
+    "./session": "./src/session/index.js",
+    "./tools": "./src/tools/index.js",
+    "./utils": "./src/utils/index.js"
   },
   "scripts": {
-    "agent": "node agent_server.mjs",
-    "package-agent": "node scripts/package-agent.mjs",
-    "test": "NODE_OPTIONS=\"--experimental-vm-modules\" node_modules/jest/bin/jest.js"
+    "start": "node src/index.js",
+    "agent": "node src/index.js",
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules\" jest",
+    "test:coverage": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\"",
+    "package": "node scripts/package-agent.mjs"
   },
   "keywords": [
     "koda",
@@ -32,6 +39,9 @@
     "@agentclientprotocol/sdk": "^0.12.0"
   },
   "devDependencies": {
-    "jest": "^30.2.0"
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "jest": "^30.2.0",
+    "prettier": "^3.0.0"
   }
 }

@@ -10,7 +10,7 @@
 export const AGENT = {
   NAME: "koda_agent",
   TITLE: "KODA Agent",
-  VERSION: "0.3.0",
+  VERSION: "0.4.0",
 };
 
 // =============================================================================
@@ -97,7 +97,7 @@ export const SESSION_UPDATE = {
   TOOL_CALL: "tool_call",
   TOOL_CALL_UPDATE: "tool_call_update",
   PLAN: "plan",
-  AVAILABLE_COMMANDS: "available_commands_update",
+  AVAILABLE_COMMANDS: "available_commands",
   CURRENT_MODE: "current_mode_update",
   CURRENT_MODEL: "current_model_update",
 };

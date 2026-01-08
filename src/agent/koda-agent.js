@@ -519,6 +519,28 @@ export class KodaAgent {
           });
           break;
 
+        case "terminal/new":
+          result = await this.connection.newTerminal({
+            sessionId,
+            cwd: params.cwd,
+          });
+          break;
+
+        case "terminal/send_input":
+          result = await this.connection.sendTerminalInput({
+            sessionId,
+            terminalId: params.terminalId,
+            input: params.input,
+          });
+          break;
+
+        case "terminal/close":
+          result = await this.connection.closeTerminal({
+            sessionId,
+            terminalId: params.terminalId,
+          });
+          break;
+
         case "session/request_permission":
           result = await this.handlePermissionRequest(sessionId, params);
           break;

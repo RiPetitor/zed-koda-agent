@@ -32,7 +32,8 @@ const COMMANDS = [
       {
         name: "mode",
         required: false,
-        description: "Режим: default, auto_edit, plan, yolo, bypass",
+        description:
+          "Режим: default, auto_edit, plan, professional, yolo, bypass",
       },
     ],
   },
@@ -90,6 +91,31 @@ const COMMANDS = [
     usage: "/models",
     arguments: [],
   },
+  // Professional mode commands
+  {
+    name: "approve",
+    description: "[Professional] Одобрить план или текущий шаг",
+    usage: "/approve",
+    arguments: [],
+  },
+  {
+    name: "skip",
+    description: "[Professional] Пропустить текущий шаг",
+    usage: "/skip",
+    arguments: [],
+  },
+  {
+    name: "reject",
+    description: "[Professional] Отклонить план",
+    usage: "/reject",
+    arguments: [],
+  },
+  {
+    name: "progress",
+    description: "[Professional] Показать прогресс выполнения плана",
+    usage: "/progress",
+    arguments: [],
+  },
 ];
 
 /**
@@ -99,11 +125,20 @@ const MODE_DESCRIPTIONS = {
   default: "Default — спрашивать разрешение на запись",
   auto_edit: "Auto Edit — автоматически разрешать изменения файлов",
   plan: "Plan Mode — только планирование, без выполнения",
+  professional:
+    "Professional — планирование и пошаговое выполнение с одобрением",
   yolo: "Don't Ask — автоматически разрешать всё, кроме опасных команд",
   bypass: "Bypass — полный доступ без проверок",
 };
 
-const VALID_MODES = ["default", "auto_edit", "plan", "yolo", "bypass"];
+const VALID_MODES = [
+  "default",
+  "auto_edit",
+  "plan",
+  "professional",
+  "yolo",
+  "bypass",
+];
 
 /**
  * Slash Command Manager
@@ -119,6 +154,10 @@ export class SlashCommandManager {
    * @param {Function} [options.onClear]
    * @param {Function} [options.onRetry]
    * @param {Function} [options.getAvailableModelsList]
+   * @param {Function} [options.onPlanApprove] - Одобрить план/шаг (Professional)
+   * @param {Function} [options.onPlanSkip] - Пропустить шаг (Professional)
+   * @param {Function} [options.onPlanReject] - Отклонить план (Professional)
+   * @param {Function} [options.getPlanProgress] - Получить прогресс плана (Professional)
    */
   constructor(options = {}) {
     /** @type {boolean} */
@@ -144,6 +183,25 @@ export class SlashCommandManager {
 
     /** @type {Function} */
     this.getAvailableModelsList = options.getAvailableModelsList || (() => []);
+
+    // Professional mode callbacks
+    /** @type {Function} */
+    this.onPlanApprove =
+      options.onPlanApprove ||
+      (() => ({ success: false, message: "Not in professional mode" }));
+
+    /** @type {Function} */
+    this.onPlanSkip =
+      options.onPlanSkip ||
+      (() => ({ success: false, message: "Not in professional mode" }));
+
+    /** @type {Function} */
+    this.onPlanReject =
+      options.onPlanReject ||
+      (() => ({ success: false, message: "Not in professional mode" }));
+
+    /** @type {Function} */
+    this.getPlanProgress = options.getPlanProgress || (() => null);
   }
 
   /**
@@ -283,6 +341,19 @@ export class SlashCommandManager {
       case "models":
         return this.handleModelsCommand(currentModel);
 
+      // Professional mode commands
+      case "approve":
+        return this.handleApproveCommand(sessionId, mode);
+
+      case "skip":
+        return this.handleSkipCommand(sessionId, mode);
+
+      case "reject":
+        return this.handleRejectCommand(sessionId, mode);
+
+      case "progress":
+        return this.handleProgressCommand(sessionId, mode);
+
       default:
         return {
           handled: false,
@@ -382,6 +453,103 @@ export class SlashCommandManager {
   }
 
   /**
+   * Обработать команду /approve (Professional)
+   * @private
+   */
+  async handleApproveCommand(sessionId, mode) {
+    if (mode !== "professional") {
+      return {
+        handled: true,
+        response:
+          "⚠️ Команда `/approve` доступна только в режиме Professional.\n\nИспользуйте `/mode professional` для переключения.",
+      };
+    }
+
+    const result = await this.onPlanApprove(sessionId);
+    return {
+      handled: true,
+      response: result.success
+        ? `✅ ${result.message}`
+        : `⚠️ ${result.message}`,
+      action: result.success ? { type: "plan_approve" } : undefined,
+    };
+  }
+
+  /**
+   * Обработать команду /skip (Professional)
+   * @private
+   */
+  async handleSkipCommand(sessionId, mode) {
+    if (mode !== "professional") {
+      return {
+        handled: true,
+        response:
+          "⚠️ Команда `/skip` доступна только в режиме Professional.\n\nИспользуйте `/mode professional` для переключения.",
+      };
+    }
+
+    const result = await this.onPlanSkip(sessionId);
+    return {
+      handled: true,
+      response: result.success
+        ? `⏭️ ${result.message}`
+        : `⚠️ ${result.message}`,
+      action: result.success ? { type: "plan_skip" } : undefined,
+    };
+  }
+
+  /**
+   * Обработать команду /reject (Professional)
+   * @private
+   */
+  async handleRejectCommand(sessionId, mode) {
+    if (mode !== "professional") {
+      return {
+        handled: true,
+        response:
+          "⚠️ Команда `/reject` доступна только в режиме Professional.\n\nИспользуйте `/mode professional` для переключения.",
+      };
+    }
+
+    const result = await this.onPlanReject(sessionId);
+    return {
+      handled: true,
+      response: result.success
+        ? `❌ ${result.message}`
+        : `⚠️ ${result.message}`,
+      action: result.success ? { type: "plan_reject" } : undefined,
+    };
+  }
+
+  /**
+   * Обработать команду /progress (Professional)
+   * @private
+   */
+  handleProgressCommand(sessionId, mode) {
+    if (mode !== "professional") {
+      return {
+        handled: true,
+        response:
+          "⚠️ Команда `/progress` доступна только в режиме Professional.\n\nИспользуйте `/mode professional` для переключения.",
+      };
+    }
+
+    const progress = this.getPlanProgress(sessionId);
+    if (!progress) {
+      return {
+        handled: true,
+        response:
+          "📋 Нет активного плана. Отправьте задачу для создания плана.",
+      };
+    }
+
+    return {
+      handled: true,
+      response: progress,
+    };
+  }
+
+  /**
    * Проверить, обрабатывается ли команда локально
    * @param {string} text
    * @returns {boolean}
@@ -403,6 +571,11 @@ export class SlashCommandManager {
       "cancel",
       "modes",
       "models",
+      // Professional mode
+      "approve",
+      "skip",
+      "reject",
+      "progress",
     ];
 
     return localCommands.includes(name);

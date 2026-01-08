@@ -81,7 +81,11 @@ export class KodaAcpBridge {
       args.push(...this.config.extraArgs);
     }
 
-    this.debugLog("Spawning KODA CLI:", this.config.kodaCommand, args.join(" "));
+    this.debugLog(
+      "Spawning KODA CLI:",
+      this.config.kodaCommand,
+      args.join(" ")
+    );
 
     this.process = spawn(this.config.kodaCommand, args, {
       stdio: ["pipe", "pipe", "pipe"],
@@ -102,7 +106,7 @@ export class KodaAcpBridge {
       try {
         const message = JSON.parse(line);
         this.handleMessage(message);
-      } catch (e) {
+      } catch {
         this.debugLog("Failed to parse JSON:", line.slice(0, 100));
       }
     });

@@ -52,7 +52,7 @@ export class MockKodaProcess extends EventEmitter {
         const response = this.responseQueue.shift();
         this.sendResponse(message.id, response.result, response.error);
       }
-    } catch (e) {
+    } catch {
       // Игнорируем ошибки парсинга
     }
   }
@@ -178,9 +178,7 @@ export function createStandardResponses() {
         currentModeId: "default",
       },
       models: {
-        availableModels: [
-          { modelId: "KodaAgent", name: "KodaAgent" },
-        ],
+        availableModels: [{ modelId: "KodaAgent", name: "KodaAgent" }],
         currentModelId: "KodaAgent",
       },
     },
@@ -195,7 +193,7 @@ export function createStandardResponses() {
  * Mock spawn функция
  */
 export function createMockSpawn(mockProcess) {
-  return (command, args, options) => {
+  return (_command, _args, _options) => {
     return mockProcess;
   };
 }

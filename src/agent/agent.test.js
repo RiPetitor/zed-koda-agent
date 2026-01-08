@@ -7,7 +7,12 @@ import { ModeManager, PlanCollector } from "../session/index.js";
 import { ModelManager } from "../models/index.js";
 import { PermissionHandler } from "../tools/index.js";
 import { SlashCommandManager } from "../commands/index.js";
-import { parseBool, parseArgList, parseServerArgs, debugLog } from "../utils/index.js";
+import {
+  parseBool,
+  parseArgList,
+  parseServerArgs,
+  debugLog,
+} from "../utils/index.js";
 
 // Mock console.error for debugLog tests
 const originalError = console.error;
@@ -15,7 +20,7 @@ let errorCalled = false;
 
 beforeEach(() => {
   errorCalled = false;
-  console.error = (...args) => {
+  console.error = () => {
     errorCalled = true;
   };
 });

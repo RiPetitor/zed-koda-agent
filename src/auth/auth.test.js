@@ -3,9 +3,6 @@
  */
 
 import { jest } from "@jest/globals";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import os from "node:os";
 
 // Mock fs
 jest.unstable_mockModule("node:fs", () => ({
@@ -18,9 +15,8 @@ jest.unstable_mockModule("node:fs", () => ({
 }));
 
 // Import after mocking
-const { hasStoredToken, getStoredToken, saveToken, deleteToken } = await import(
-  "./token-storage.js"
-);
+const { hasStoredToken, getStoredToken, saveToken, deleteToken } =
+  await import("./token-storage.js");
 
 const mockFs = (await import("node:fs")).promises;
 

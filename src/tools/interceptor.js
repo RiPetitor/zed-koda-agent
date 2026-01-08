@@ -211,7 +211,7 @@ export class ToolCallInterceptor {
    * Очистить состояние сессии
    * @param {string} sessionId
    */
-  clearSession(sessionId) {
+  clearSession(_sessionId) {
     this.blockedToolCalls.clear();
     this.pendingToolCalls.clear();
   }

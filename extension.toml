@@ -15,21 +15,21 @@ args = ["agent_server.mjs"]
 KODA_DEFAULT_MODE = "default"
 
 [agent_servers.koda-agent.targets.darwin-aarch64]
-archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.2.0/koda-agent-darwin-aarch64.tar.gz"
+archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.4.0/koda-agent-darwin-aarch64.tar.gz"
 cmd = "node"
 args = ["agent_server.mjs"]
 
 [agent_servers.koda-agent.targets.darwin-x86_64]
-archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.2.0/koda-agent-darwin-x86_64.tar.gz"
+archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.4.0/koda-agent-darwin-x86_64.tar.gz"
 cmd = "node"
 args = ["agent_server.mjs"]
 
 [agent_servers.koda-agent.targets.linux-x86_64]
-archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.2.0/koda-agent-linux-x86_64.tar.gz"
+archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.4.0/koda-agent-linux-x86_64.tar.gz"
 cmd = "node"
 args = ["agent_server.mjs"]
 
 [agent_servers.koda-agent.targets.windows-x86_64]
-archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.2.0/koda-agent-windows-x86_64.tar.gz"
+archive = "https://github.com/RiPetitor/zed-koda-agent/releases/download/v0.4.0/koda-agent-windows-x86_64.tar.gz"
 cmd = "node"
 args = ["agent_server.mjs"]

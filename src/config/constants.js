@@ -97,7 +97,7 @@ export const SESSION_UPDATE = {
   TOOL_CALL: "tool_call",
   TOOL_CALL_UPDATE: "tool_call_update",
   PLAN: "plan",
-  AVAILABLE_COMMANDS: "available_commands",
+  AVAILABLE_COMMANDS: "available_commands_update",
   CURRENT_MODE: "current_mode_update",
   CURRENT_MODEL: "current_model_update",
 };

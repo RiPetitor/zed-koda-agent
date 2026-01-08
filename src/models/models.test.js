@@ -93,7 +93,9 @@ describe("API Client", () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            koda_data: [{ id: "KodaAgent", owned_by: "KODA", context_length: 128000 }],
+            koda_data: [
+              { id: "KodaAgent", owned_by: "KODA", context_length: 128000 },
+            ],
             data: [],
           }),
       });

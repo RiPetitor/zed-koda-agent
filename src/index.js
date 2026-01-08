@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * KODA Agent Server - Entry Point
  *
@@ -5,38 +6,30 @@
  * @description AI coding assistant for Zed Editor with permission control and planning modes
  */
 
-import * as acp from "@agentclientprotocol/sdk";
+import { AgentSideConnection, ndJsonStream } from "@agentclientprotocol/sdk";
+import { Readable, Writable } from "node:stream";
+import process from "node:process";
+
 import { KodaAgent } from "./agent/index.js";
 import { parseServerArgs } from "./utils/index.js";
 
-/**
- * Запустить сервер KODA Agent
- */
-async function main() {
-  const config = parseServerArgs(process.argv.slice(2));
+// Parse config from command line arguments
+const config = parseServerArgs(process.argv.slice(2));
 
-  if (config.debug) {
-    console.error("[KODA Agent] Starting with config:", {
-      kodaCommand: config.kodaCommand,
-      extraArgs: config.extraArgs,
-      defaultMode: config.defaultMode,
-      defaultModel: config.defaultModel || "(auto)",
-      debug: config.debug,
-    });
-  }
-
-  // Create ACP server connection
-  const connection = acp.createConnection(
-    process.stdin,
-    process.stdout,
-    (conn) => new KodaAgent(conn, config)
-  );
-
-  // Start listening for ACP messages
-  await connection.listen();
+if (config.debug) {
+  console.error("[KODA Agent] Starting with config:", {
+    kodaCommand: config.kodaCommand,
+    extraArgs: config.extraArgs,
+    defaultMode: config.defaultMode,
+    defaultModel: config.defaultModel || "(auto)",
+    debug: config.debug,
+  });
 }
 
-main().catch((error) => {
-  console.error("[KODA Agent] Fatal error:", error);
-  process.exit(1);
-});
+// Convert Node.js streams to Web Streams for ACP SDK
+const input = Writable.toWeb(process.stdout);
+const output = Readable.toWeb(process.stdin);
+const stream = ndJsonStream(input, output);
+
+// Create ACP connection - it starts listening automatically
+new AgentSideConnection((conn) => new KodaAgent(conn, config), stream);

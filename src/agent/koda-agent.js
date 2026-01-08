@@ -336,7 +336,7 @@ export class KodaAgent {
    * @param {Object} params
    * @returns {Promise<Object>}
    */
-  async setSessionModel(params) {
+  async unstable_setSessionModel(params) {
     const { sessionId, modelId } = params;
 
     const session = this.sessions.get(sessionId);
@@ -655,7 +655,7 @@ export class KodaAgent {
             });
             break;
           case "model_change":
-            await this.setSessionModel({
+            await this.unstable_setSessionModel({
               sessionId,
               modelId: result.action.model,
             });
@@ -851,7 +851,7 @@ Waiting for authorization...`;
   async handleSlashModelChange(sessionId, modelId) {
     if (!sessionId) return;
     try {
-      await this.setSessionModel({ sessionId, modelId });
+      await this.unstable_setSessionModel({ sessionId, modelId });
     } catch (error) {
       this.debugLog(`Failed to change model: ${error.message}`);
     }

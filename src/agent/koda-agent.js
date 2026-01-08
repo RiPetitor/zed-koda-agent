@@ -7,7 +7,11 @@ import { randomUUID } from "node:crypto";
 import process from "node:process";
 
 import { AGENT, SESSION_UPDATE } from "../config/constants.js";
-import { ModeManager, PlanCollector } from "../session/index.js";
+import {
+  ModeManager,
+  PlanCollector,
+  ProfessionalModeHandler,
+} from "../session/index.js";
 import { ModelManager } from "../models/index.js";
 import { PermissionHandler, ToolCallInterceptor } from "../tools/index.js";
 import { KodaAcpBridge } from "../bridge/index.js";
@@ -50,6 +54,7 @@ export class KodaAgent {
       debug: config.debug,
     });
     this.planCollector = new PlanCollector({ debug: config.debug });
+    this.professionalHandler = new ProfessionalModeHandler();
 
     // Initialize interceptor
     this.interceptor = new ToolCallInterceptor(
@@ -74,6 +79,11 @@ export class KodaAgent {
       onClear: (sessionId) => this.handleSlashClear(sessionId),
       onRetry: (sessionId) => this.handleSlashRetry(sessionId),
       getAvailableModelsList: () => this.modelManager.availableModels,
+      // Professional mode callbacks
+      onPlanApprove: (sessionId) => this.handlePlanApprove(sessionId),
+      onPlanSkip: (sessionId) => this.handlePlanSkip(sessionId),
+      onPlanReject: (sessionId) => this.handlePlanReject(sessionId),
+      getPlanProgress: (sessionId) => this.getPlanProgress(sessionId),
     });
 
     // Check initial auth status
@@ -584,7 +594,9 @@ export class KodaAgent {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    this.debugLog(`Session ${sessionId} closed: code=${code}, signal=${signal}`);
+    this.debugLog(
+      `Session ${sessionId} closed: code=${code}, signal=${signal}`
+    );
 
     if (session.restarting) {
       this.debugLog(`Session ${sessionId} is restarting, not cleaning up`);
@@ -596,6 +608,7 @@ export class KodaAgent {
     this.modelManager.deleteSession(sessionId);
     this.permissionHandler.deleteSession(sessionId);
     this.planCollector.deleteSession(sessionId);
+    this.professionalHandler.reset();
   }
 
   // ===========================================================================
@@ -696,7 +709,11 @@ ${browserStatus}
 Waiting for authorization...`;
 
         await this.sendMessage(sessionId, text);
-        this.pollAuthorizationStatus(sessionId, result.deviceCode, result.interval);
+        this.pollAuthorizationStatus(
+          sessionId,
+          result.deviceCode,
+          result.interval
+        );
       }
     } catch (error) {
       this.debugLog(`Authentication error: ${error.message}`);
@@ -864,6 +881,110 @@ Waiting for authorization...`;
       sessionId,
       "\n\n🔄 Для повтора последнего запроса нажмите кнопку повтора в интерфейсе Zed."
     );
+  }
+
+  // ===========================================================================
+  // Professional Mode Handlers
+  // ===========================================================================
+
+  /**
+   * Одобрить план или текущий шаг (Professional mode)
+   * @private
+   * @param {string} sessionId
+   * @returns {{success: boolean, message: string}}
+   */
+  handlePlanApprove(_sessionId) {
+    if (!this.professionalHandler.hasPlan()) {
+      return { success: false, message: "Нет активного плана для одобрения" };
+    }
+
+    if (this.professionalHandler.isPlanPendingApproval()) {
+      const approved = this.professionalHandler.approvePlan();
+      if (approved) {
+        const step = this.professionalHandler.getCurrentStep();
+        return {
+          success: true,
+          message: `План одобрен. Готов к выполнению шага 1: ${step?.title || ""}`,
+        };
+      }
+      return { success: false, message: "Не удалось одобрить план" };
+    }
+
+    if (this.professionalHandler.isStepAwaitingApproval()) {
+      const step = this.professionalHandler.approveCurrentStep();
+      if (step) {
+        return {
+          success: true,
+          message: `Выполняю шаг: ${step.title}`,
+        };
+      }
+      return { success: false, message: "Не удалось одобрить шаг" };
+    }
+
+    return { success: false, message: "Нет ожидающих одобрения элементов" };
+  }
+
+  /**
+   * Пропустить текущий шаг (Professional mode)
+   * @private
+   * @param {string} sessionId
+   * @returns {{success: boolean, message: string}}
+   */
+  handlePlanSkip(_sessionId) {
+    if (!this.professionalHandler.hasPlan()) {
+      return { success: false, message: "Нет активного плана" };
+    }
+
+    const currentStep = this.professionalHandler.getCurrentStep();
+    if (!currentStep) {
+      return { success: false, message: "Нет текущего шага для пропуска" };
+    }
+
+    const hasNext = this.professionalHandler.skipCurrentStep();
+    if (hasNext) {
+      const nextStep = this.professionalHandler.getCurrentStep();
+      return {
+        success: true,
+        message: `Шаг "${currentStep.title}" пропущен. Следующий: ${nextStep?.title || ""}`,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Шаг "${currentStep.title}" пропущен. План завершён.`,
+    };
+  }
+
+  /**
+   * Отклонить план (Professional mode)
+   * @private
+   * @param {string} sessionId
+   * @returns {{success: boolean, message: string}}
+   */
+  handlePlanReject(_sessionId) {
+    if (!this.professionalHandler.hasPlan()) {
+      return { success: false, message: "Нет активного плана для отклонения" };
+    }
+
+    this.professionalHandler.rejectPlan();
+    return {
+      success: true,
+      message: "План отклонён. Вы можете отправить новую задачу.",
+    };
+  }
+
+  /**
+   * Получить прогресс плана (Professional mode)
+   * @private
+   * @param {string} sessionId
+   * @returns {string|null}
+   */
+  getPlanProgress(_sessionId) {
+    if (!this.professionalHandler.hasPlan()) {
+      return null;
+    }
+
+    return this.professionalHandler.formatPlanForDisplay();
   }
 
   // ===========================================================================

@@ -6,16 +6,23 @@
 
 ## English
 
-AI coding agent that runs KODA CLI through the Agent Client Protocol (ACP) with GitHub authentication, dynamic model selection, and slash commands.
+AI coding agent for Zed Editor with GitHub authentication, dynamic model selection, and slash commands. Works through the Agent Client Protocol (ACP).
 
 ### Features
 
-- **Full ACP Integration** — Runs KODA CLI in ACP mode for seamless Zed integration
+- **Full ACP Integration** — Native Zed agent integration
 - **GitHub Authentication** — Login via `/auth` command to unlock premium models
 - **Dynamic Model List** — Models fetched from KODA API based on auth status
 - **Slash Commands** — Built-in commands for auth, models, modes, and more
 - **Permission Control** — Ask before file edits and command execution
-- **Session Modes** — Default, Accept Edits, Plan Mode, Don't Ask, Bypass
+- **Session Modes** — Default, Auto Edit, Plan, Professional, YOLO, Bypass
+
+### Installation
+
+1. Open Zed Editor
+2. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open Extensions
+3. Search for "KODA Agent"
+4. Click Install
 
 ### Slash Commands
 
@@ -26,49 +33,27 @@ AI coding agent that runs KODA CLI through the Agent Client Protocol (ACP) with 
 | `/logout` | Logout from GitHub account |
 | `/models` | Show available models |
 | `/model <id>` | Switch to a specific model |
+| `/modes` | Show available modes |
 | `/mode <mode>` | Change session mode |
 | `/status` | Show current session status |
+| `/clear` | Clear session history |
+| `/plan` | Show current plan |
+| `/retry` | Retry last request |
+| `/cancel` | Cancel current operation |
+
+#### Professional Mode Commands
+
+| Command | Description |
+|---------|-------------|
+| `/approve` | Approve plan or current step |
+| `/skip` | Skip current step |
+| `/reject` | Reject plan |
+| `/progress` | Show plan execution progress |
 
 ### Requirements
 
 - Zed Editor
-- KODA CLI installed (`koda` on PATH)
-- Node.js 18+
-
-### Quick Start
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Add to Zed settings (`zed: open settings`):
-
-```json
-{
-  "agent": {
-    "profiles": {
-      "koda-agent": {
-        "name": "KODA Agent",
-        "provider": {
-          "type": "agent_server",
-          "server": "KODA Agent"
-        }
-      }
-    }
-  },
-  "agent_servers": {
-    "KODA Agent": {
-      "type": "custom",
-      "command": "node",
-      "args": ["/path/to/koda_zed/agent_server.mjs"]
-    }
-  }
-}
-```
-
-3. Open Agent panel in Zed and select **KODA Agent**.
+- Node.js 18+ (for dev extension)
 
 ### Authentication
 
@@ -93,16 +78,23 @@ Use `/models` to see available models.
 
 ## Русский
 
-AI агент для программирования, запускающий KODA CLI через Agent Client Protocol (ACP) с GitHub авторизацией, динамическим выбором моделей и slash-командами.
+AI агент для Zed Editor с GitHub авторизацией, динамическим выбором моделей и slash-командами. Работает через Agent Client Protocol (ACP).
 
 ### Возможности
 
-- **Полная интеграция ACP** — Запуск KODA CLI в режиме ACP для работы с Zed
+- **Полная интеграция ACP** — Нативная интеграция с Zed
 - **GitHub авторизация** — Вход через `/auth` для доступа к премиум моделям
 - **Динамический список моделей** — Модели загружаются из KODA API
 - **Slash-команды** — Встроенные команды для авторизации, моделей, режимов
 - **Контроль разрешений** — Запрос перед редактированием файлов
-- **Режимы сессии** — Default, Accept Edits, Plan Mode, Don't Ask, Bypass
+- **Режимы сессии** — Default, Auto Edit, Plan, Professional, YOLO, Bypass
+
+### Установка
+
+1. Откройте Zed Editor
+2. Нажмите `Ctrl+Shift+X` (или `Cmd+Shift+X` на macOS) для открытия Extensions
+3. Найдите "KODA Agent"
+4. Нажмите Install
 
 ### Slash-команды
 
@@ -113,49 +105,27 @@ AI агент для программирования, запускающий KO
 | `/logout` | Выйти из аккаунта |
 | `/models` | Показать доступные модели |
 | `/model <id>` | Переключить модель |
+| `/modes` | Показать доступные режимы |
 | `/mode <mode>` | Изменить режим сессии |
 | `/status` | Показать статус сессии |
+| `/clear` | Очистить историю сессии |
+| `/plan` | Показать текущий план |
+| `/retry` | Повторить последний запрос |
+| `/cancel` | Отменить текущую операцию |
+
+#### Команды режима Professional
+
+| Команда | Описание |
+|---------|----------|
+| `/approve` | Одобрить план или текущий шаг |
+| `/skip` | Пропустить текущий шаг |
+| `/reject` | Отклонить план |
+| `/progress` | Показать прогресс выполнения плана |
 
 ### Требования
 
 - Zed Editor
-- KODA CLI (`koda` в PATH)
-- Node.js 18+
-
-### Быстрый старт
-
-1. Установить зависимости:
-
-```bash
-npm install
-```
-
-2. Добавить в настройки Zed (`zed: open settings`):
-
-```json
-{
-  "agent": {
-    "profiles": {
-      "koda-agent": {
-        "name": "KODA Agent",
-        "provider": {
-          "type": "agent_server",
-          "server": "KODA Agent"
-        }
-      }
-    }
-  },
-  "agent_servers": {
-    "KODA Agent": {
-      "type": "custom",
-      "command": "node",
-      "args": ["/path/to/koda_zed/agent_server.mjs"]
-    }
-  }
-}
-```
-
-3. Открыть панель Agent в Zed и выбрать **KODA Agent**.
+- Node.js 18+ (для dev-расширения)
 
 ### Авторизация
 
@@ -181,27 +151,80 @@ npm install
 ## Architecture / Архитектура
 
 ```
-┌─────────┐      ACP       ┌──────────────┐      ACP       ┌──────────┐
-│   Zed   │ ◄────────────► │ agent_server │ ◄────────────► │ KODA CLI │
+┌─────────┐      ACP       ┌──────────────┐      HTTP      ┌──────────┐
+│   Zed   │ ◄────────────► │ KODA Agent   │ ◄────────────► │ KODA API │
 └─────────┘                └──────────────┘                └──────────┘
 ```
 
 ## Project Structure / Структура проекта
 
 ```
-koda_zed/
-├── agent_server.mjs    # Entry point / Точка входа
+zed-koda-agent/
+├── agent_server.mjs         # Entry point / Точка входа
+├── extension.toml           # Zed extension config
 ├── src/
-│   ├── agent.js        # Main agent class / Главный класс
-│   ├── bridge.js       # KODA ACP Bridge / Мост к KODA CLI
-│   ├── models.js       # Models & GitHub Auth / Модели и авторизация
-│   ├── modes.js        # Session modes / Режимы сессии
-│   ├── slash.js        # Slash commands / Slash-команды
-│   ├── permissions.js  # Permission handler / Обработка разрешений
-│   ├── interceptor.js  # Tool call interceptor / Перехватчик вызовов
-│   ├── plan.js         # Plan collector / Сборщик планов
-│   └── utils.js        # Utilities / Утилиты
-└── extension.toml
+│   ├── index.js             # Main entry / Главный модуль
+│   ├── agent/
+│   │   └── koda-agent.js    # Main agent class / Главный класс агента
+│   ├── auth/
+│   │   ├── github-oauth.js  # GitHub OAuth flow
+│   │   └── token-storage.js # Token persistence
+│   ├── bridge/
+│   │   └── koda-bridge.js   # KODA API bridge / Мост к KODA API
+│   ├── commands/
+│   │   └── slash-commands.js # Slash command handlers
+│   ├── config/
+│   │   └── constants.js     # Configuration / Конфигурация
+│   ├── models/
+│   │   ├── api-client.js    # API client / API клиент
+│   │   └── model-manager.js # Model management / Управление моделями
+│   ├── session/
+│   │   ├── mode-manager.js  # Session modes / Режимы сессии
+│   │   ├── plan-collector.js # Plan collection / Сбор планов
+│   │   └── professional-handler.js # Professional mode
+│   ├── tools/
+│   │   ├── interceptor.js   # Tool call interceptor / Перехватчик
+│   │   └── permission-handler.js # Permission control
+│   └── utils/
+│       └── index.js         # Utilities / Утилиты
+└── scripts/
+    ├── package-agent.mjs    # Build script / Скрипт сборки
+    └── clean-zed-cache.sh   # Cache cleanup / Очистка кэша
+```
+
+## Development / Разработка
+
+### Local Development / Локальная разработка
+
+```bash
+# Install dependencies / Установка зависимостей
+npm install
+
+# Run tests / Запуск тестов
+npm test
+
+# Lint code / Проверка кода
+npm run lint
+
+# Build release archives / Сборка архивов
+npm run package -- --target linux-x86_64
+```
+
+### Dev Extension in Zed / Dev-расширение в Zed
+
+1. Clone the repo / Клонируйте репозиторий
+2. In Zed: `Ctrl+Shift+P` → "zed: install dev extension"
+3. Select the project folder / Выберите папку проекта
+
+### Troubleshooting / Решение проблем
+
+If changes don't take effect after rebuild:
+
+```bash
+# Clean Zed caches / Очистить кэши Zed
+npm run clean:zed
+
+# Then restart Zed and rebuild the extension
 ```
 
 ## Author / Автор
@@ -211,50 +234,3 @@ koda_zed/
 ## License / Лицензия
 
 MIT
-
-## Troubleshooting Dev Extension
-
-### Slash Commands Not Working
-
-If slash commands don't appear after installing the dev extension, Zed may be using a cached version. To fix:
-
-```bash
-# Clean Zed caches
-npm run clean:zed
-
-# Or manually:
-bash scripts/clean-zed-cache.sh
-```
-
-Then:
-1. Restart Zed completely
-2. Reinstall the dev extension
-
-### Changes Not Taking Effect
-
-Zed caches compiled extensions in `~/.var/app/dev.zed.Zed/data/zed/external_agents/`. When developing:
-
-1. **After making changes:**
-   ```bash
-   npm run clean:zed
-   ```
-
-2. **In Zed:**
-   - `Ctrl+Shift+P` → "zed: reload extensions"
-   - Or restart Zed
-
-### Development Workflow
-
-```bash
-# 1. Make your changes
-vim src/agent/koda-agent.js
-
-# 2. Test locally
-npm test
-
-# 3. Clean caches
-npm run clean:zed
-
-# 4. Reload in Zed
-# Ctrl+Shift+P → "zed: reload extensions"
-```

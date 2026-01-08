@@ -8,8 +8,7 @@ repository = "https://github.com/RiPetitor/zed-koda-agent"
 
 [agent_servers.koda-agent]
 name = "KODA Agent"
-cmd = "node"
-args = ["agent_server.mjs"]
+cmd = "./agent_server.mjs"
 
 [agent_servers.koda-agent.env]
 KODA_DEFAULT_MODE = "default"

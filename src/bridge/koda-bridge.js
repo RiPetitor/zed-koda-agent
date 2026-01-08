@@ -1,9 +1,9 @@
 /**
  * KODA ACP Bridge - двунаправленный ACP прокси к KODA CLI
+ * Оптимизирован для минимальной латентности
  */
 
 import { spawn } from "node:child_process";
-import { createInterface } from "node:readline";
 import process from "node:process";
 import { AGENT, TIMEOUTS } from "../config/constants.js";
 
@@ -14,40 +14,21 @@ export class KodaAcpBridge {
   /**
    * @param {Object} config - Server configuration
    * @param {Object} [callbacks={}] - Event callbacks
-   * @param {Function} [callbacks.onMessage] - Message handler
-   * @param {Function} [callbacks.onClose] - Close handler
-   * @param {Function} [callbacks.onError] - Error handler
    */
   constructor(config, callbacks = {}) {
-    /** @type {Object} */
     this.config = config;
-
-    /** @type {Function} */
     this.onMessage = callbacks.onMessage || (() => {});
-
-    /** @type {Function} */
     this.onClose = callbacks.onClose || (() => {});
-
-    /** @type {Function} */
     this.onError = callbacks.onError || ((err) => console.error(err));
 
-    /** @type {ChildProcess|null} */
     this.process = null;
-
-    /** @type {Map<number, {resolve: Function, reject: Function}>} */
     this.pendingRequests = new Map();
-
-    /** @type {number} */
     this.requestIdCounter = 1;
-
-    /** @type {readline.Interface|null} */
-    this.readline = null;
-
-    /** @type {boolean} */
     this.initialized = false;
-
-    /** @type {string|null} */
     this.kodaSessionId = null;
+
+    // Buffer for incomplete JSON lines
+    this._buffer = "";
   }
 
   /**
@@ -63,15 +44,9 @@ export class KodaAcpBridge {
    * Запустить KODA CLI в ACP режиме
    * @param {string} cwd - Working directory
    * @param {Object} [options={}]
-   * @param {string} [options.model] - Model to use
-   * @returns {Promise<void>}
    */
   async spawn(cwd, options = {}) {
-    const args = [
-      "--experimental-acp",
-      "--approval-mode",
-      "yolo", // We handle permissions ourselves
-    ];
+    const args = ["--experimental-acp", "--approval-mode", "yolo"];
 
     if (options.model) {
       args.push("--model", options.model);
@@ -93,28 +68,19 @@ export class KodaAcpBridge {
       env: {
         ...process.env,
         NO_COLOR: "1",
+        // Disable buffering in child process
+        PYTHONUNBUFFERED: "1",
+        NODE_OPTIONS: "--no-warnings",
       },
     });
 
-    this.readline = createInterface({
-      input: this.process.stdout,
-      crlfDelay: Infinity,
-    });
-
-    this.readline.on("line", (line) => {
-      if (!line.trim()) return;
-      try {
-        const message = JSON.parse(line);
-        this.handleMessage(message);
-      } catch {
-        this.debugLog("Failed to parse JSON:", line.slice(0, 100));
-      }
-    });
+    // Direct stream parsing - faster than readline
+    this.process.stdout.setEncoding("utf8");
+    this.process.stdout.on("data", (chunk) => this._handleChunk(chunk));
 
     this.process.stderr.on("data", (chunk) => {
-      const text = chunk.toString("utf8");
       if (this.config.debug) {
-        process.stderr.write(`[KODA stderr] ${text}`);
+        process.stderr.write(`[KODA stderr] ${chunk}`);
       }
     });
 
@@ -133,9 +99,33 @@ export class KodaAcpBridge {
   }
 
   /**
+   * Обработка входящих данных - прямой парсинг без readline
+   * @private
+   */
+  _handleChunk(chunk) {
+    this._buffer += chunk;
+
+    // Process complete lines
+    let newlineIndex;
+    while ((newlineIndex = this._buffer.indexOf("\n")) !== -1) {
+      const line = this._buffer.slice(0, newlineIndex).trim();
+      this._buffer = this._buffer.slice(newlineIndex + 1);
+
+      if (line) {
+        try {
+          const message = JSON.parse(line);
+          // Use setImmediate to not block the event loop
+          setImmediate(() => this.handleMessage(message));
+        } catch {
+          this.debugLog("Failed to parse JSON:", line.slice(0, 100));
+        }
+      }
+    }
+  }
+
+  /**
    * Инициализировать ACP соединение
    * @private
-   * @returns {Promise<Object>}
    */
   async initialize() {
     const { PROTOCOL_VERSION } = await import("@agentclientprotocol/sdk");
@@ -143,10 +133,7 @@ export class KodaAcpBridge {
     const response = await this.sendRequest("initialize", {
       protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
-        fs: {
-          readTextFile: true,
-          writeTextFile: true,
-        },
+        fs: { readTextFile: true, writeTextFile: true },
         terminal: true,
       },
       clientInfo: {
@@ -159,15 +146,15 @@ export class KodaAcpBridge {
     this.initialized = true;
     this.debugLog("Initialized successfully");
 
-    // Auto-skip authentication on init
+    // Auto-skip authentication
     if (response.authMethods?.length > 0) {
       const skipMethod = response.authMethods.find((m) => m.id === "skip");
       if (skipMethod) {
-        this.debugLog("Skipping authentication for now");
+        this.debugLog("Skipping authentication");
         try {
           await this.sendRequest("authenticate", { methodId: "skip" });
-        } catch (e) {
-          this.debugLog("Skip auth failed:", e.message);
+        } catch {
+          // Ignore skip auth errors
         }
       }
     }
@@ -177,47 +164,31 @@ export class KodaAcpBridge {
 
   /**
    * Аутентифицировать в KODA CLI
-   * @param {string} [methodId="github"]
-   * @returns {Promise<Object>}
    */
   async authenticate(methodId = "github") {
     this.debugLog(`Authenticating with method: ${methodId}`);
-    try {
-      const response = await this.sendRequest("authenticate", { methodId });
-      this.debugLog("Authentication successful");
-      return response;
-    } catch (error) {
-      this.debugLog(`Authentication failed: ${error.message}`);
-      throw error;
-    }
+    const response = await this.sendRequest("authenticate", { methodId });
+    this.debugLog("Authentication successful");
+    return response;
   }
 
   /**
-   * Создать новую сессию в KODA CLI
-   * @param {string} cwd
-   * @param {Array} [mcpServers=[]]
-   * @returns {Promise<Object>}
+   * Создать новую сессию
    */
   async createSession(cwd, mcpServers = []) {
-    const response = await this.sendRequest("session/new", {
-      cwd,
-      mcpServers,
-    });
+    const response = await this.sendRequest("session/new", { cwd, mcpServers });
     this.kodaSessionId = response.sessionId;
     this.debugLog("Session created:", this.kodaSessionId);
     return response;
   }
 
   /**
-   * Отправить prompt в KODA CLI
-   * @param {string|Array} prompt
-   * @returns {Promise<Object>}
+   * Отправить prompt
    */
   async sendPrompt(prompt) {
     if (!this.kodaSessionId) {
       throw new Error("Session not created");
     }
-
     return this.sendRequest("session/prompt", {
       sessionId: this.kodaSessionId,
       prompt,
@@ -225,91 +196,59 @@ export class KodaAcpBridge {
   }
 
   /**
-   * Отменить текущую операцию
+   * Отменить операцию
    */
   sendCancel() {
     if (!this.kodaSessionId) return;
-
-    this.sendNotification("session/cancel", {
-      sessionId: this.kodaSessionId,
-    });
+    this.sendNotification("session/cancel", { sessionId: this.kodaSessionId });
   }
 
   /**
    * Отправить запрос и ждать ответа
-   * @param {string} method
-   * @param {Object} params
-   * @returns {Promise<Object>}
    */
   sendRequest(method, params) {
     return new Promise((resolve, reject) => {
       const id = this.requestIdCounter++;
       this.pendingRequests.set(id, { resolve, reject });
-
-      const message = {
-        jsonrpc: "2.0",
-        id,
-        method,
-        params,
-      };
-
-      this.writeMessage(message);
+      this._write({ jsonrpc: "2.0", id, method, params });
     });
   }
 
   /**
-   * Отправить нотификацию (без ответа)
-   * @param {string} method
-   * @param {Object} params
+   * Отправить нотификацию
    */
   sendNotification(method, params) {
-    const message = {
-      jsonrpc: "2.0",
-      method,
-      params,
-    };
-    this.writeMessage(message);
+    this._write({ jsonrpc: "2.0", method, params });
   }
 
   /**
-   * Отправить ответ на запрос KODA CLI
-   * @param {number} id
-   * @param {Object|null} result
-   * @param {Object|null} [error=null]
+   * Отправить ответ
    */
   sendResponse(id, result, error = null) {
     const message = error
       ? { jsonrpc: "2.0", id, error }
       : { jsonrpc: "2.0", id, result };
-    this.writeMessage(message);
+    this._write(message);
   }
 
   /**
-   * Записать JSON сообщение в stdin KODA CLI
+   * Записать сообщение - оптимизировано
    * @private
-   * @param {Object} message
    */
-  writeMessage(message) {
-    if (!this.process?.stdin?.writable) {
-      this.debugLog("stdin not writable");
-      return;
-    }
-    try {
-      this.process.stdin.write(JSON.stringify(message) + "\n");
-    } catch (error) {
-      this.debugLog("Write error:", error.message);
-    }
+  _write(message) {
+    if (!this.process?.stdin?.writable) return;
+    // Direct write without try-catch overhead for hot path
+    this.process.stdin.write(JSON.stringify(message) + "\n");
   }
 
   /**
-   * Обработать входящее сообщение от KODA CLI
+   * Обработать сообщение
    * @private
-   * @param {Object} message
    */
   handleMessage(message) {
     this.debugLog("Received:", JSON.stringify(message).slice(0, 200));
 
-    // Handle response to our request
+    // Response to our request
     if (
       message.id !== undefined &&
       (message.result !== undefined || message.error)
@@ -326,12 +265,12 @@ export class KodaAcpBridge {
       return;
     }
 
-    // Handle notification or request from KODA CLI
+    // Notification or request from KODA CLI
     this.onMessage(message);
   }
 
   /**
-   * Завершить процесс KODA CLI
+   * Завершить процесс
    */
   kill() {
     if (this.process) {
@@ -345,8 +284,7 @@ export class KodaAcpBridge {
   }
 
   /**
-   * Проверить, работает ли процесс
-   * @returns {boolean}
+   * Проверить статус
    */
   isRunning() {
     return this.process && !this.process.killed;

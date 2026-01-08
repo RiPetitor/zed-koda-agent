@@ -150,35 +150,36 @@ export class ToolCallInterceptor {
     this.planCollector.addEntry(sessionId, toolCall);
     this.blockedToolCalls.set(toolCall.toolCallId, toolCall);
 
-    await this.connection.sessionUpdate({
-      sessionId,
-      update: {
-        ...toolCall,
-        sessionUpdate: SESSION_UPDATE.TOOL_CALL,
-        status: "pending",
-      },
-    });
-
-    await this.connection.sessionUpdate({
-      sessionId,
-      update: {
-        sessionUpdate: SESSION_UPDATE.PLAN,
-        entries: this.planCollector.getPlan(sessionId),
-      },
-    });
-
-    await this.connection.sessionUpdate({
-      sessionId,
-      update: {
-        sessionUpdate: SESSION_UPDATE.TOOL_CALL_UPDATE,
-        toolCallId: toolCall.toolCallId,
-        status: "failed",
-        rawOutput: {
-          blocked: true,
-          reason: "Plan mode - execution blocked",
+    // Send all updates in parallel - no need to wait between them
+    await Promise.all([
+      this.connection.sessionUpdate({
+        sessionId,
+        update: {
+          ...toolCall,
+          sessionUpdate: SESSION_UPDATE.TOOL_CALL,
+          status: "pending",
         },
-      },
-    });
+      }),
+      this.connection.sessionUpdate({
+        sessionId,
+        update: {
+          sessionUpdate: SESSION_UPDATE.PLAN,
+          entries: this.planCollector.getPlan(sessionId),
+        },
+      }),
+      this.connection.sessionUpdate({
+        sessionId,
+        update: {
+          sessionUpdate: SESSION_UPDATE.TOOL_CALL_UPDATE,
+          toolCallId: toolCall.toolCallId,
+          status: "failed",
+          rawOutput: {
+            blocked: true,
+            reason: "Plan mode - execution blocked",
+          },
+        },
+      }),
+    ]);
 
     this.debugLog(`Tool call added to plan: ${toolCall.title}`);
     return { forward: false, blocked: true };

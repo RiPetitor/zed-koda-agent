@@ -101,6 +101,7 @@ describe("Modes", () => {
       "default",
       "auto_edit",
       "plan",
+      "professional",
       "yolo",
       "bypass",
     ]);
@@ -127,7 +128,7 @@ describe("Modes", () => {
 
     expect(config).toHaveProperty("availableModes");
     expect(config).toHaveProperty("currentModeId", "plan");
-    expect(config.availableModes).toHaveLength(5);
+    expect(config.availableModes).toHaveLength(6);
   });
 });
 
